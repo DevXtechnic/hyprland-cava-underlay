@@ -1,0 +1,129 @@
+#!/usr/bin/env fish
+
+# Cava Background Daemon - Phase 8.4 (Dual Terminal Support)
+# Objective: Support both 'foot' and 'kitty' terminals.
+
+set -g BUSY_PROCS nvim micro vim nano vi emacs top htop btop nvtop ranger yazi lazygit
+set -g STATE_FILE "/tmp/cava_bg.state" # "address workspace"
+
+function log
+    /usr/bin/echo (date "+%H:%M:%S") "[cava-bg] $argv" >&2
+end
+
+function get_audio
+    if /usr/bin/grep -q "RUNNING" /proc/asound/card*/pcm*p*/sub*/status 2>/dev/null
+        return 0
+    end
+    if /usr/bin/pactl list sink-inputs 2>/dev/null | /usr/bin/grep -q "Corked: no"
+        return 0
+    end
+    return 1
+end
+
+function get_term_count_on_workspace -a ws_id
+    set -l count (hyprctl clients -j | jq "[.[] | select((.class == \"foot\" or .class == \"kitty\") and .workspace.id == $ws_id)] | length")
+    echo $count
+end
+
+function is_busy
+    set -l active (hyprctl activewindow -j 2>/dev/null)
+    set -l pid (echo $active | jq -r '.pid')
+    set -l class (echo $active | jq -r '.class')
+    
+    if test "$class" = "foot-cava-bg"
+        return 0 
+    end
+
+    if test "$class" != "foot" -a "$class" != "kitty"
+        return 1 
+    end
+
+    set -l shell_pids (pgrep -P $pid)
+    for shell in $shell_pids
+        set -l apps (pgrep -P $shell)
+        for app in $apps
+            set -l cmd (/usr/bin/ps -o comm= -p $app 2>/dev/null | string trim)
+            if contains "$cmd" $BUSY_PROCS; return 0; end
+        end
+        set -l cmd (/usr/bin/ps -o comm= -p $shell 2>/dev/null | string trim)
+        if contains "$cmd" $BUSY_PROCS; return 0; end
+    end
+    return 1
+end
+
+function stop_visualizer
+    pkill -u $USER -f "wallpaper-cava" 2>/dev/null
+    rm -f $STATE_FILE
+end
+
+function start_visualizer
+    set -l active (hyprctl activewindow -j 2>/dev/null)
+    set -l addr (echo $active | jq -r '.address' | string trim)
+    set -l class (echo $active | jq -r '.class' | string trim)
+    set -l ws (echo $active | jq -r '.workspace.id' | string trim)
+    set -l monitor (echo $active | jq -r '.monitor' | string trim)
+
+    if test "$class" != "foot" -a "$class" != "kitty"; or is_busy
+        if test -f $STATE_FILE; stop_visualizer; end
+        return
+    end
+
+    set -l term_count (get_term_count_on_workspace $ws)
+    if test "$term_count" -gt 1
+        if test -f $STATE_FILE; stop_visualizer; end
+        return
+    end
+
+    if test -f $STATE_FILE
+        set -l state (cat $STATE_FILE | string split " ")
+        if test "$state[1]" = "$addr"
+            return
+        else
+            stop_visualizer
+        end
+    end
+
+    log "Start: Phase 8.3 Resilient Anchor for $addr on monitor $monitor"
+    
+    set -l tx (echo $active | jq -r '.at[0]')
+    set -l ty (echo $active | jq -r '.at[1]')
+    set -l tw (echo $active | jq -r '.size[0]')
+    set -l th (echo $active | jq -r '.size[1]')
+    
+    # Calculate Bottom Margin for Anchor::BOTTOM (Exact alignment)
+    set -l mon_h (hyprctl monitors -j | jq -r ".[] | select(.id == $monitor) | .height")
+    set -l bottom_margin (math $mon_h - $ty - $th)
+    
+    # Surface Height: Increased to 400px for a taller look
+    set -l surf_h 400
+
+    echo "$addr $ws" > $STATE_FILE
+
+    /home/neo/.gemini/antigravity/scratch/wallpaper-cava-project/wallpaper-cava/target/release/wallpaper-cava \
+        --config /home/neo/.gemini/antigravity/scratch/wallpaper-cava-project/wallpaper-cava/config.toml \
+        --x $tx --y $bottom_margin --width $tw --height $surf_h &
+end
+
+rm -f $STATE_FILE
+
+set -l socket "$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
+if test -S "$socket"
+    fish -c "
+        socat -U - UNIX-CONNECT:$socket | while read -l line
+            switch \$line
+                case 'workspace>>*' 'focusedmon>>*' 'openwindow>>*' 'closewindow>>*'
+                   pkill -u neo -f 'wallpaper-cava' 2>/dev/null
+                   rm -f /tmp/cava_bg.state
+            end
+        end
+    " &
+end
+
+while true
+    if get_audio
+        start_visualizer
+    else
+        if test -f $STATE_FILE; stop_visualizer; end
+    end
+    sleep 0.25
+end

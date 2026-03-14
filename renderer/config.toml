@@ -1,0 +1,31 @@
+# Alpha is a float and can take value from 0.0 to 1.0
+# All colors here can be either just "#FFFFFF" or { hex: "#FFFFFF", alpha:1.0 }
+# If alpha is not specified, it is considered 1.0.
+[general]
+framerate = 60
+background_color = { hex = "#000000", alpha = 0.0 }
+autosens = true
+sensitivity = 200
+
+[bars]
+# Middle ground: 160 bars
+amount = 200
+# Dense but defined
+gap = 0.1
+# Fill the 400px height
+height_scale = 1.0
+
+[colors]
+# Blue & Cyan ONLY theme (No Yellow)
+color_1 = '#ffffff' # Top peak (White)
+color_2 = '#00ffff' # Cyan
+color_3 = '#00e5ff' # Brighter Cyan
+color_4 = '#00bfff' # Deep Sky Blue
+color_5 = '#0091ff'
+color_6 = '#0062ff' # Vivid Blue
+color_7 = '#0000ff' # Base (Pure Blue)
+
+[smoothing]
+monstercat = 2.5
+noise_reduction = 0.12
+waves = 1

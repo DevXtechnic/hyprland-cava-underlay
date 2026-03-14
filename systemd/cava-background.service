@@ -1,0 +1,16 @@
+[Unit]
+Description=Cava Background Visualizer Daemon
+After=graphical-session.target pipewire.service
+PartOf=graphical-session.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStartPre=/usr/bin/sleep 5
+ExecStart=%h/.local/bin/cava-bg-daemon
+Restart=always
+RestartSec=3
+PassEnvironment=WAYLAND_DISPLAY XDG_CURRENT_DESKTOP DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_RUNTIME_DIR
+
+[Install]
+WantedBy=default.target
