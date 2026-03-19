@@ -1,8 +1,15 @@
 # Hyprland Cava Underlay
 
+![Platform](https://img.shields.io/badge/platform-Wayland%20(Hyprland)-green.svg)
+
 A highly customized and optimized Layer Shell implementation of the [cava](https://github.com/karlstav/cava) audio visualizer perfectly anchored to the bottom of Kitty or Foot terminals in Hyprland.
 
 This project modifies `wallpaper-cava` to accurately track single terminal windows per workspace, ensuring the visualizer gracefully underlays your terminal.
+
+## Preview
+<!-- Add your preview images here -->
+![Cava Underlay Preview](preview.png)
+![Cava Underlay Preview 2](preview2.png)
 
 ## Features
 - Dynamic workspace tracking (supports `foot` and `kitty`).
@@ -72,4 +79,3 @@ The `cava-bg-daemon` (written in Fish) runs as a `systemd --user` service. It us
 
 ## Acknowledgements
 - Based on `wallpaper-cava` (A Rust layer-shell renderer for cava).
-- Made with ❤️ alongside Antigravity AI.
